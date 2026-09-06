@@ -61,7 +61,8 @@ AGORA_APP_CERTIFICATE=your_certificate
 LLM_SERVER_URL=http://localhost:8000
 
 # For voice_agent.py (standalone Agora ConvoAI REST API)
-AGORA_TOKEN=your_agora_token
+AGORA_CUSTOMER_ID=your_customer_id
+AGORA_CUSTOMER_SECRET=your_customer_secret
 CONVOAI_PIPELINE_ID=your_pipeline_id
 ```
 
