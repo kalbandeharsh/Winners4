@@ -11,7 +11,10 @@ Usage:
     python3 voice_agent.py --uid 12345            # Override agent UID
 
 Required .env vars:
-    AGORA_TOKEN             - Bearer token for Agora Conversational AI API
+    AGORA_APP_ID            - Agora App ID
+    AGORA_APP_CERTIFICATE   - Agora App Certificate (for RTC token generation)
+    AGORA_CUSTOMER_ID       - Agora Customer ID (for REST API Basic Auth)
+    AGORA_CUSTOMER_SECRET   - Agora Customer Secret (for REST API Basic Auth)
     CONVOAI_PIPELINE_ID     - Pipeline ID from the Agora console
 
 Optional .env vars:
@@ -21,6 +24,7 @@ Optional .env vars:
 """
 
 import argparse
+import base64
 import json
 import os
 import sys
@@ -28,13 +32,17 @@ import time
 
 import requests
 from dotenv import load_dotenv
+from agora_token_builder import RtcTokenBuilder
 
 load_dotenv()
 
 # ---------------------------------------------------------------------------
 # Configuration from environment
 # ---------------------------------------------------------------------------
-AGORA_TOKEN = os.getenv("AGORA_TOKEN", "")
+AGORA_APP_ID = os.getenv("AGORA_APP_ID", "")
+AGORA_APP_CERTIFICATE = os.getenv("AGORA_APP_CERTIFICATE", "")
+AGORA_CUSTOMER_ID = os.getenv("AGORA_CUSTOMER_ID", "")
+AGORA_CUSTOMER_SECRET = os.getenv("AGORA_CUSTOMER_SECRET", "")
 CONVOAI_PIPELINE_ID = os.getenv("CONVOAI_PIPELINE_ID", "")
 CONVOAI_AGENT_NAME = os.getenv("CONVOAI_AGENT_NAME", "")
 CONVOAI_AGENT_UID = os.getenv("CONVOAI_AGENT_UID", "83705447")
@@ -42,6 +50,23 @@ CONVOAI_IDLE_TIMEOUT = int(os.getenv("CONVOAI_IDLE_TIMEOUT", "60"))
 
 # Agora ConvoAI API base
 CONVOAI_BASE_URL = "https://api.agora.io/api/conversational-ai-agent/v2"
+
+
+def _make_basic_auth(customer_id: str, customer_secret: str) -> str:
+    """Create Basic Auth header value from Customer ID and Secret."""
+    credentials = f"{customer_id}:{customer_secret}"
+    encoded = base64.b64encode(credentials.encode()).decode()
+    return f"Basic {encoded}"
+
+
+def _generate_rtc_token(app_id: str, app_certificate: str, channel: str, uid: int) -> str:
+    """Generate an RTC token valid for 24 hours."""
+    now = int(time.time())
+    token = RtcTokenBuilder.buildTokenWithUid(
+        app_id, app_certificate, channel, uid,
+        1, now + 86400  # 24 hours
+    )
+    return token
 
 
 def join_voice_agent(
@@ -70,21 +95,22 @@ def join_voice_agent(
     if not agent_name:
         agent_name = f"eco-agent-{int(time.time())}"
 
-    url = f"{CONVOAI_BASE_URL}/projects/716291267cab4ad2913563d237964e6e/join"
+    # Generate RTC token for joining the channel
+    rtc_token = _generate_rtc_token(AGORA_APP_ID, AGORA_APP_CERTIFICATE, channel, int(agent_uid))
+
+    url = f"{CONVOAI_BASE_URL}/projects/{AGORA_APP_ID}/join"
     headers = {
-        "Authorization": f"agora token={AGORA_TOKEN}",
+        "Authorization": _make_basic_auth(AGORA_CUSTOMER_ID, AGORA_CUSTOMER_SECRET),
         "Content-Type": "application/json",
     }
     data = {
         "name": agent_name,
         "pipeline_id": pipeline_id,
         "properties": {
-            "agent_rtc_uid": agent_uid,
             "channel": channel,
-            "enable_string_uid": False,
-            "idle_timeout": idle_timeout,
+            "agent_rtc_uid": agent_uid,
             "remote_rtc_uids": ["*"],
-            "token": AGORA_TOKEN,
+            "token": rtc_token,
         },
     }
 
@@ -147,12 +173,25 @@ def main():
     idle_timeout = args.idle_timeout or CONVOAI_IDLE_TIMEOUT
 
     # Validate required values
-    if not AGORA_TOKEN:
-        print("❌ AGORA_TOKEN not set. Add it to your .env file.")
-        sys.exit(1)
+    missing = []
+    if not AGORA_APP_ID:
+        missing.append("AGORA_APP_ID")
+    if not AGORA_APP_CERTIFICATE:
+        missing.append("AGORA_APP_CERTIFICATE")
+    if not AGORA_CUSTOMER_ID:
+        missing.append("AGORA_CUSTOMER_ID")
+    if not AGORA_CUSTOMER_SECRET:
+        missing.append("AGORA_CUSTOMER_SECRET")
     if not pipeline_id:
-        print("❌ CONVOAI_PIPELINE_ID not set. Add it to your .env file.")
-        print("   Find it in the Agora Console → Agents → Pipeline tab.")
+        missing.append("CONVOAI_PIPELINE_ID")
+
+    if missing:
+        print(f"❌ Missing required env vars: {', '.join(missing)}")
+        print("   Add them to your .env file.")
+        if "AGORA_CUSTOMER_ID" in missing or "AGORA_CUSTOMER_SECRET" in missing:
+            print("   Find Customer ID/Secret in Agora Console → Account → API Credentials")
+        if "CONVOAI_PIPELINE_ID" in missing:
+            print("   Find Pipeline ID in Agora Console → Agents → your agent → Code tab")
         sys.exit(1)
 
     try:
