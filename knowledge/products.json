@@ -1,0 +1,126 @@
+{
+  "company": "EcoSphere",
+  "tagline": "Real-Time Voice AI for Sales",
+  "products": [
+    {
+      "id": "starter",
+      "name": "Starter Plan",
+      "price": 29,
+      "currency": "USD",
+      "billing": "monthly",
+      "target": "Small teams and startups",
+      "description": "Perfect for teams getting started with AI-powered sales calls",
+      "features": [
+        "100 voice calls per month",
+        "Basic conversation analytics",
+        "Email support",
+        "1 agent seat",
+        "Standard voice quality"
+      ],
+      "limits": {
+        "calls_per_month": 100,
+        "agents": 1,
+        "storage_gb": 5
+      }
+    },
+    {
+      "id": "pro",
+      "name": "Pro Plan",
+      "price": 79,
+      "currency": "USD",
+      "billing": "monthly",
+      "target": "Growing sales teams",
+      "description": "Advanced features for teams scaling their sales operations",
+      "features": [
+        "1,000 voice calls per month",
+        "Advanced analytics dashboard",
+        "Priority support",
+        "5 agent seats",
+        "API access",
+        "Custom voice personas",
+        "Call recording and transcription"
+      ],
+      "limits": {
+        "calls_per_month": 1000,
+        "agents": 5,
+        "storage_gb": 50
+      },
+      "popular": true
+    },
+    {
+      "id": "enterprise",
+      "name": "Enterprise Plan",
+      "price": 199,
+      "currency": "USD",
+      "billing": "monthly",
+      "target": "Large organizations",
+      "description": "Full-scale solution with dedicated support and custom integrations",
+      "features": [
+        "Unlimited voice calls",
+        "Custom analytics and reporting",
+        "Dedicated account manager",
+        "Unlimited agent seats",
+        "Full API access",
+        "Custom voice personas",
+        "Call recording and transcription",
+        "SSO and advanced security",
+        "Custom integrations (CRM, calendar)",
+        "SLA guarantee (99.9% uptime)"
+      ],
+      "limits": {
+        "calls_per_month": -1,
+        "agents": -1,
+        "storage_gb": 500
+      }
+    }
+  ],
+  "add_ons": [
+    {
+      "name": "Extra Calls Pack",
+      "price": 15,
+      "description": "500 additional calls per month"
+    },
+    {
+      "name": "Premium Voice",
+      "price": 25,
+      "description": "Enhanced voice quality with emotion detection"
+    },
+    {
+      "name": "CRM Integration",
+      "price": 35,
+      "description": "Connect to Salesforce, HubSpot, or custom CRM"
+    }
+  ],
+  "faqs": [
+    {
+      "question": "Is there a free trial?",
+      "answer": "Yes! We offer a 14-day free trial with full Pro features. No credit card required."
+    },
+    {
+      "question": "Can I change plans anytime?",
+      "answer": "Absolutely. Upgrade or downgrade anytime. Changes take effect immediately with prorated billing."
+    },
+    {
+      "question": "What happens if I exceed my call limit?",
+      "answer": "We'll notify you at 80% usage. You can purchase additional calls or upgrade your plan."
+    },
+    {
+      "question": "Do you offer annual billing?",
+      "answer": "Yes! Save 20% with annual billing. Contact sales for custom enterprise pricing."
+    }
+  ],
+  "competitors": {
+    "our_advantages": [
+      "Real-time voice AI with natural interruption handling",
+      "Stateful conversation memory across entire calls",
+      "RAG-grounded answers (no hallucination)",
+      "Easy integration with existing tools",
+      "No-code setup for non-technical teams"
+    ],
+    "responses": {
+      "twilio": "While Twilio provides raw telephony, EcoSphere adds the AI brain on top. We handle the entire conversation, not just the connection.",
+      "voiceflow": "Voiceflow is great for building flows, but EcoSphere actually executes them with real-time voice AI. No scripting required.",
+      "custom": "Building custom requires months of engineering. EcoSphere gives you production-ready voice AI in minutes."
+    }
+  }
+}

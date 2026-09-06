@@ -1,0 +1,8 @@
+.env
+.freebuff/
+__pycache__/
+*.db
+*.db-shm
+*.db-wal
+*.log
+__pycache__/

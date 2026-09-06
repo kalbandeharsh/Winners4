@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoSphere - Voice AI Sales Agent</title>
+  <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #0a0a1a; color: #fff; min-height: 100vh; }
+    
+    .header { background: linear-gradient(135deg, #1a1a3e 0%, #0f3460 100%); padding: 20px 40px; display: flex; align-items: center; gap: 20px; border-bottom: 2px solid #e94560; }
+    .logo { font-size: 28px; font-weight: 700; color: #e94560; }
+    .subtitle { color: #8892b0; font-size: 14px; }
+    .badge { background: #e94560; color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    
+    .main { display: grid; grid-template-columns: 350px 1fr 300px; gap: 20px; padding: 20px; height: calc(100vh - 80px); }
+    
+    .panel { background: #16213e; border-radius: 16px; padding: 20px; overflow: hidden; display: flex; flex-direction: column; }
+    .panel-title { font-size: 14px; font-weight: 600; color: #e94560; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 1px solid #1a365d; }
+    
+    .controls { display: flex; flex-direction: column; gap: 16px; }
+    .channel-input { width: 100%; padding: 14px; background: #0f3460; border: 2px solid #1a365d; border-radius: 12px; color: #fff; font-size: 14px; transition: border-color 0.3s; }
+    .channel-input:focus { outline: none; border-color: #e94560; }
+    .channel-input::placeholder { color: #5a6a8a; }
+    
+    .btn { padding: 14px 24px; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s; }
+    .btn-primary { background: linear-gradient(135deg, #e94560 0%, #c73e54 100%); color: #fff; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(233, 69, 96, 0.4); }
+    .btn-danger { background: linear-gradient(135deg, #533483 0%, #3d2566 100%); color: #fff; }
+    
+    .status-box { padding: 16px; border-radius: 12px; font-size: 14px; text-align: center; }
+    .status-idle { background: #0f3460; color: #8892b0; }
+    .status-connecting { background: #1a365d; color: #fbbf24; }
+    .status-active { background: #065f46; color: #34d399; }
+    .status-error { background: #7f1d1d; color: #fca5a5; }
+    
+    .transcript { flex: 1; overflow-y: auto; padding-right: 8px; }
+    .transcript::-webkit-scrollbar { width: 6px; }
+    .transcript::-webkit-scrollbar-thumb { background: #1a365d; border-radius: 3px; }
+    
+    .message { margin-bottom: 16px; padding: 12px 16px; border-radius: 12px; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .message-user { background: #1a365d; border-left: 3px solid #3b82f6; }
+    .message-agent { background: #1e1e3f; border-left: 3px solid #e94560; }
+    .message-system { background: #1a1a2e; border-left: 3px solid #8b5cf6; text-align: center; color: #8892b0; font-size: 13px; }
+    
+    .message-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .message-user .message-label { color: #60a5fa; }
+    .message-agent .message-label { color: #f87171; }
+    .message-text { font-size: 15px; line-height: 1.5; color: #e2e8f0; }
+    .message-time { font-size: 11px; color: #5a6a8a; margin-top: 6px; }
+    
+    .analytics { display: flex; flex-direction: column; gap: 16px; }
+    
+    .metric-card { background: #0f3460; padding: 16px; border-radius: 12px; }
+    .metric-label { font-size: 11px; color: #8892b0; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .metric-value { font-size: 24px; font-weight: 700; color: #fff; }
+    .metric-value.intent { color: #fbbf24; }
+    .metric-value.score { color: #34d399; }
+    .metric-value.latency { font-size: 18px; }
+    
+    .intent-badge { display: inline-block; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+    .intent-pricing { background: #78350f; color: #fbbf24; }
+    .intent-demo { background: #065f46; color: #34d399; }
+    .intent-objection { background: #7f1d1d; color: #fca5a5; }
+    .intent-general { background: #1e3a5f; color: #93c5fd; }
+    
+    .progress-bar { height: 8px; background: #1a365d; border-radius: 4px; overflow: hidden; margin-top: 8px; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease; }
+    .progress-low { background: linear-gradient(90deg, #ef4444, #f97316); }
+    .progress-med { background: linear-gradient(90deg, #f97316, #eab308); }
+    .progress-high { background: linear-gradient(90deg, #22c55e, #10b981); }
+    
+    .waveform { display: flex; align-items: center; gap: 3px; height: 24px; }
+    .wave-bar { width: 4px; background: #e94560; border-radius: 2px; animation: wave 1s ease-in-out infinite; }
+    .wave-bar:nth-child(1) { animation-delay: 0s; }
+    .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+    @keyframes wave { 0%, 100% { height: 8px; } 50% { height: 20px; } }
+    
+    .hidden { display: none !important; }
+    
+    .latency-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .latency-item { text-align: center; }
+    .latency-value { font-size: 16px; font-weight: 600; }
+    .latency-label { font-size: 10px; color: #8892b0; }
+    .latency-good { color: #34d399; }
+    .latency-ok { color: #fbbf24; }
+    .latency-bad { color: #f87171; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="logo">🎙️ EcoSphere</div>
+      <div class="subtitle">Real-Time Voice AI Sales Agent</div>
+    </div>
+    <div style="flex:1"></div>
+    <div class="badge">ECHO SPHERE HACKATHON</div>
+    <div class="badge" style="background:#065f46">WINNERS4</div>
+  </div>
+  
+  <div class="main">
+    <!-- Left Panel: Controls -->
+    <div class="panel">
+      <div class="panel-title">📞 Voice Controls</div>
+      <div class="controls">
+        <input class="channel-input" id="channel" placeholder="Paste channel name from terminal">
+        <button class="btn btn-primary" id="joinBtn" onclick="join()">📞 Join Call</button>
+        <button class="btn btn-danger hidden" id="leaveBtn" onclick="leave()">📴 Leave Call</button>
+        <div class="status-box status-idle" id="status">
+          <div id="statusIcon">⏸️</div>
+          <div id="statusText">Ready to connect</div>
+        </div>
+        
+        <!-- Network Latency Panel -->
+        <div class="metric-card">
+          <div class="metric-label">🌐 Network Latency</div>
+          <div class="latency-grid">
+            <div class="latency-item">
+              <div class="latency-value latency-good" id="rtcLatency">--</div>
+              <div class="latency-label">RTC (Agora)</div>
+            </div>
+            <div class="latency-item">
+              <div class="latency-value latency-good" id="serverLatency">--</div>
+              <div class="latency-label">Server</div>
+            </div>
+            <div class="latency-item">
+              <div class="latency-value latency-good" id="networkQuality">--</div>
+              <div class="latency-label">Quality</div>
+            </div>
+            <div class="latency-item">
+              <div class="latency-value" id="packetLoss">--</div>
+              <div class="latency-label">Packet Loss</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="metric-card" style="margin-top: auto">
+          <div class="metric-label">Connection Stats</div>
+          <div style="display:flex;justify-content:space-between;margin-top:8px">
+            <div><div style="font-size:11px;color:#8892b0">Duration</div><div style="font-size:18px;font-weight:600" id="duration">0:00</div></div>
+            <div><div style="font-size:11px;color:#8892b0">Bitrate</div><div style="font-size:18px;font-weight:600" id="bitrate">--</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Center Panel: Transcript -->
+    <div class="panel">
+      <div class="panel-title">💬 Live Transcript</div>
+      <div class="transcript" id="transcript">
+        <div class="message message-system">
+          <div class="message-text">Welcome to EcoSphere Voice AI Demo. Join a call to start the conversation.</div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Right Panel: Analytics -->
+    <div class="panel">
+      <div class="panel-title">📊 Agent Analytics</div>
+      <div class="analytics">
+        <div class="metric-card">
+          <div class="metric-label">Current Intent</div>
+          <div class="metric-value intent" id="intent">
+            <span class="intent-badge intent-general">general</span>
+          </div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-label">Lead Score</div>
+          <div class="metric-value score" id="leadScore">0%</div>
+          <div class="progress-bar">
+            <div class="progress-fill progress-low" id="leadProgress" style="width:0%"></div>
+          </div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-label">Turn Count</div>
+          <div class="metric-value" id="turnCount">0</div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-label">Agent Status</div>
+          <div id="agentActivity">
+            <div class="waveform hidden" id="waveform">
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+              <div class="wave-bar"></div>
+            </div>
+            <div id="agentStatusText" style="font-size:13px;color:#8892b0;margin-top:4px">Idle</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SERVER = 'http://localhost:8000';
+    let client, mic, callStartTime;
+    let turnCount = 0;
+    let leadScore = 0;
+    let latencyInterval;
+    
+    // ============================================================
+    // LATENCY MEASUREMENT
+    // ============================================================
+    
+    // Method 1: Agora SDK Network Quality Event
+    function setupNetworkQualityMonitoring() {
+      if (!client) return;
+      
+      client.on('network-quality', (stats) => {
+        // stats.uplinkNetworkQuality: 0(unknown) 1(excellent) 2(good) 3(fair) 4(poor) 5(bad)
+        const qualityMap = { 0: '--', 1: 'Excellent', 2: 'Good', 3: 'Fair', 4: 'Poor', 5: 'Bad' };
+        const qualityMapClass = { 0: '', 1: 'latency-good', 2: 'latency-good', 3: 'latency-ok', 4: 'latency-bad', 5: 'latency-bad' };
+        
+        const quality = stats.uplinkNetworkQuality || 0;
+        const el = document.getElementById('networkQuality');
+        el.textContent = qualityMap[quality];
+        el.className = 'latency-value ' + qualityMapClass[quality];
+        
+        console.log('📊 Network Quality:', stats);
+      });
+    }
+    
+    // Method 2: Agora RTC Stats (RTT)
+    async function updateAgoraStats() {
+      if (!client) return;
+      
+      try {
+        const stats = client.getRTCStats();
+        if (stats) {
+          // Send bytes per second -> bitrate
+          const sendBitrate = stats.SendBitrate || 0;
+          document.getElementById('bitrate').textContent = `${(sendBitrate / 1000).toFixed(1)} kbps`;
+          
+          // RTT (Round Trip Time) from Agora
+          const rtt = stats.SendJitter || stats.RTT || 0;
+          updateLatencyDisplay('rtcLatency', rtt);
+          
+          console.log('📡 Agora Stats:', stats);
+        }
+      } catch (e) {
+        console.log('Stats not available yet');
+      }
+    }
+    
+    // Method 3: Server Ping Latency
+    async function measureServerLatency() {
+      try {
+        const start = performance.now();
+        const response = await fetch(`${SERVER}/ping`);
+        const end = performance.now();
+        const latency = Math.round(end - start);
+        
+        updateLatencyDisplay('serverLatency', latency);
+      } catch (e) {
+        document.getElementById('serverLatency').textContent = 'N/A';
+      }
+    }
+    
+    // Update latency display with color coding
+    function updateLatencyDisplay(elementId, latencyMs) {
+      const el = document.getElementById(elementId);
+      el.textContent = `${Math.round(latencyMs)}ms`;
+      
+      if (latencyMs < 100) {
+        el.className = 'latency-value latency-good';
+      } else if (latencyMs < 200) {
+        el.className = 'latency-value latency-ok';
+      } else {
+        el.className = 'latency-value latency-bad';
+      }
+    }
+    
+    // Start periodic latency measurement
+    function startLatencyMonitoring() {
+      // Measure server latency every 2 seconds
+      latencyInterval = setInterval(() => {
+        measureServerLatency();
+        updateAgoraStats();
+      }, 2000);
+      
+      // Initial measurement
+      measureServerLatency();
+    }
+    
+    function stopLatencyMonitoring() {
+      if (latencyInterval) {
+        clearInterval(latencyInterval);
+        latencyInterval = null;
+      }
+    }
+    
+    // ============================================================
+    // MAIN FUNCTIONS
+    // ============================================================
+    
+    async function join() {
+      const ch = document.getElementById('channel').value;
+      if (!ch) { setStatus('error', '⚠️', 'Enter channel name'); return; }
+      
+      setStatus('connecting', '🔄', 'Connecting...');
+      addMessage('system', 'Connecting to voice channel...');
+      
+      try {
+        // Fetch token from server
+        const res = await fetch(`${SERVER}/token?channel=${encodeURIComponent(ch)}&uid=0`);
+        if (!res.ok) throw new Error('Token server not running');
+        const { token, appId } = await res.json();
+        
+        // Create Agora client
+        client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
+        mic = await AgoraRTC.createMicrophoneAudioTrack();
+        
+        // Setup network monitoring
+        setupNetworkQualityMonitoring();
+        
+        // Handle incoming audio (agent speaking)
+        client.on('user-published', async (u, t) => {
+          await client.subscribe(u, t);
+          if (t === 'audio') {
+            u.audioTrack.play();
+            setStatus('active', '🔊', 'Agent speaking');
+            showWaveform(true);
+          }
+        });
+        
+        client.on('user-unpublished', () => {
+          showWaveform(false);
+          if (document.getElementById('status').classList.contains('status-active')) {
+            setStatus('active', '🎤', 'Your turn to speak');
+          }
+        });
+        
+        // Join channel
+        await client.join(appId, ch, token, null);
+        await client.publish([mic]);
+        
+        // Update UI
+        callStartTime = Date.now();
+        document.getElementById('joinBtn').classList.add('hidden');
+        document.getElementById('leaveBtn').classList.remove('hidden');
+        setStatus('active', '🎤', 'Connected - Start speaking');
+        addMessage('system', '✅ Connected to voice channel. Start speaking!');
+        
+        // Start latency monitoring
+        startLatencyMonitoring();
+        updateDuration();
+        
+      } catch(e) {
+        setStatus('error', '❌', e.message);
+        addMessage('system', `Error: ${e.message}`);
+      }
+    }
+    
+    function leave() {
+      if (mic) mic.close();
+      if (client) client.leave();
+      
+      // Stop latency monitoring
+      stopLatencyMonitoring();
+      
+      document.getElementById('joinBtn').classList.remove('hidden');
+      document.getElementById('leaveBtn').classList.add('hidden');
+      setStatus('idle', '⏸️', 'Disconnected');
+      showWaveform(false);
+      addMessage('system', 'Call ended.');
+      
+      // Reset
+      turnCount = 0;
+      leadScore = 0;
+      updateAnalytics();
+    }
+    
+    function addMessage(role, text) {
+      const transcript = document.getElementById('transcript');
+      const time = new Date().toLocaleTimeString();
+      
+      const div = document.createElement('div');
+      div.className = `message message-${role}`;
+      div.innerHTML = `
+        <div class="message-label">${role === 'user' ? '👤 You' : role === 'agent' ? '🤖 Agent' : 'ℹ️ System'}</div>
+        <div class="message-text">${text}</div>
+        <div class="message-time">${time}</div>
+      `;
+      
+      transcript.appendChild(div);
+      transcript.scrollTop = transcript.scrollHeight;
+      
+      if (role === 'user' || role === 'agent') {
+        turnCount++;
+        leadScore = Math.min(100, leadScore + 15);
+        updateAnalytics();
+      }
+    }
+    
+    function setStatus(type, icon, text) {
+      document.getElementById('statusIcon').textContent = icon;
+      document.getElementById('statusText').textContent = text;
+      document.getElementById('status').className = `status-box status-${type}`;
+    }
+    
+    function showWaveform(show) {
+      document.getElementById('waveform').classList.toggle('hidden', !show);
+      document.getElementById('agentStatusText').textContent = show ? 'Speaking...' : 'Listening';
+    }
+    
+    function updateAnalytics() {
+      document.getElementById('turnCount').textContent = turnCount;
+      document.getElementById('leadScore').textContent = `${leadScore}%`;
+      
+      const progress = document.getElementById('leadProgress');
+      progress.style.width = `${leadScore}%`;
+      progress.className = `progress-fill ${leadScore < 33 ? 'progress-low' : leadScore < 66 ? 'progress-med' : 'progress-high'}`;
+    }
+    
+    function updateDuration() {
+      if (!callStartTime) return;
+      const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+      const mins = Math.floor(elapsed / 60);
+      const secs = elapsed % 60;
+      document.getElementById('duration').textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+      requestAnimationFrame(updateDuration);
+    }
+  </script>
+</body>
+</html>

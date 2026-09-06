@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EcoSphere — Monitoring Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1117;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #1a1d2e 0%, #0d2137 100%);
+            padding: 20px 30px;
+            border-bottom: 1px solid #2a2d3e;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            font-size: 24px;
+            color: #00d4aa;
+        }
+        .header .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .header .status .dot {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: #00d4aa;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            padding: 20px 30px;
+        }
+        .stat-card {
+            background: #1a1d2e;
+            border: 1px solid #2a2d3e;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+        .stat-card .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #00d4aa;
+        }
+        .stat-card .label {
+            font-size: 13px;
+            color: #888;
+            margin-top: 4px;
+        }
+        .main {
+            display: grid;
+            grid-template-columns: 350px 1fr;
+            gap: 20px;
+            padding: 0 30px 30px;
+            height: calc(100vh - 180px);
+        }
+        .panel {
+            background: #1a1d2e;
+            border: 1px solid #2a2d3e;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .panel-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #2a2d3e;
+            font-weight: 600;
+            font-size: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 12px;
+        }
+        /* Session list */
+        .session-item {
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s;
+            margin-bottom: 4px;
+        }
+        .session-item:hover, .session-item.active {
+            background: #252840;
+        }
+        .session-item .session-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .session-item .session-meta {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+            display: flex;
+            gap: 12px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-pricing { background: #1e3a5f; color: #60a5fa; }
+        .badge-objection { background: #5f1e1e; color: #f87171; }
+        .badge-demo { background: #1e5f3a; color: #34d399; }
+        .badge-competitor { background: #5f4e1e; color: #fbbf24; }
+        .badge-general { background: #2a2d3e; color: #aaa; }
+        .badge-handoff { background: #5f1e4e; color: #f472b6; }
+        /* Transcript */
+        .transcript {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+        .transcript.customer {
+            background: #1e2d4a;
+            margin-right: auto;
+        }
+        .transcript.agent {
+            background: #1a3a2a;
+            margin-left: auto;
+        }
+        .transcript .role {
+            font-size: 11px;
+            font-weight: 600;
+            color: #888;
+            margin-bottom: 4px;
+        }
+        .transcript .text {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        /* Right panel detail */
+        .detail-section {
+            padding: 16px;
+            border-bottom: 1px solid #2a2d3e;
+        }
+        .detail-section h3 {
+            font-size: 13px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        .detail-field {
+            font-size: 13px;
+        }
+        .detail-field .field-label {
+            color: #666;
+            font-size: 11px;
+        }
+        .detail-field .field-value {
+            color: #ddd;
+            font-weight: 500;
+        }
+        .objection-list {
+            list-style: none;
+        }
+        .objection-list li {
+            padding: 8px 12px;
+            background: #252840;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+        .objection-list li .obj-type {
+            font-weight: 600;
+            color: #f87171;
+            margin-right: 6px;
+        }
+        .lead-score-bar {
+            width: 100%;
+            height: 8px;
+            background: #2a2d3e;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        .lead-score-bar .fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #555;
+            font-size: 14px;
+        }
+        .connect-bar {
+            padding: 16px 30px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        .connect-bar input {
+            flex: 1;
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid #2a2d3e;
+            background: #1a1d2e;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+        .connect-bar button {
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: none;
+            background: #00d4aa;
+            color: #000;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .connect-bar button:hover { background: #00b894; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎙️ EcoSphere Dashboard</h1>
+        <div class="status">
+            <div class="dot"></div>
+            <span id="serverStatus">Connecting...</span>
+        </div>
+    </div>
+
+    <div class="connect-bar">
+        <input type="text" id="serverUrl" placeholder="Server URL (e.g., http://localhost:8000)" value="http://localhost:8000">
+        <button onclick="connectToServer()">Connect</button>
+        <button onclick="refreshSessions()" style="background:#252840;color:#e0e0e0;">Refresh</button>
+    </div>
+
+    <div class="stats-bar">
+        <div class="stat-card">
+            <div class="value" id="totalSessions">0</div>
+            <div class="label">Total Sessions</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="activeSessions">0</div>
+            <div class="label">Active Conversations</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="escalatedCount">0</div>
+            <div class="label">Escalated</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="avgLeadScore">—</div>
+            <div class="label">Avg Lead Score</div>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- Left: Session list -->
+        <div class="panel">
+            <div class="panel-header">
+                <span>📋 Sessions</span>
+                <span id="sessionCount" style="color:#888;font-size:12px;">0</span>
+            </div>
+            <div class="panel-body" id="sessionList">
+                <div class="empty-state">No sessions yet. Connect to server to begin.</div>
+            </div>
+        </div>
+
+        <!-- Right: Transcript + Details -->
+        <div class="panel">
+            <div class="panel-header">
+                <span id="transcriptTitle">Select a session to view transcript</span>
+                <span id="intentBadge"></span>
+            </div>
+            <div class="panel-body" id="transcriptArea">
+                <div class="empty-state">Select a session from the left panel</div>
+            </div>
+            <div id="sessionDetails" style="display:none;">
+                <div class="detail-section">
+                    <h3>Customer Info</h3>
+                    <div class="detail-grid" id="customerFields"></div>
+                </div>
+                <div class="detail-section">
+                    <h3>Lead Score</h3>
+                    <div id="leadScoreDisplay"></div>
+                </div>
+                <div class="detail-section">
+                    <h3>Objections</h3>
+                    <ul class="objection-list" id="objectionList"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let serverUrl = 'http://localhost:8000';
+        let sessions = [];
+        let selectedSessionId = null;
+        let refreshInterval = null;
+
+        function connectToServer() {
+            serverUrl = document.getElementById('serverUrl').value.replace(/\/$/, '');
+            document.getElementById('serverStatus').textContent = 'Connected to ' + serverUrl;
+            refreshSessions();
+            // Auto-refresh every 5 seconds
+            if (refreshInterval) clearInterval(refreshInterval);
+            refreshInterval = setInterval(refreshSessions, 5000);
+        }
+
+        async function refreshSessions() {
+            try {
+                const resp = await fetch(serverUrl + '/sessions');
+                const data = await resp.json();
+                sessions = data.sessions || [];
+                updateStats();
+                renderSessionList();
+                document.getElementById('serverStatus').textContent = 'Connected ✓';
+            } catch (e) {
+                document.getElementById('serverStatus').textContent = 'Connection failed';
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalSessions').textContent = sessions.length;
+            const active = sessions.filter(s => s.outcome === 'in_progress').length;
+            document.getElementById('activeSessions').textContent = active;
+            const escalated = sessions.filter(s => s.outcome === 'escalated' || s.handoff_needed).length;
+            document.getElementById('escalatedCount').textContent = escalated;
+            document.getElementById('sessionCount').textContent = sessions.length;
+
+            // Calculate average lead score
+            if (sessions.length > 0) {
+                const totalScore = sessions.reduce((sum, s) => sum + calculateLeadScore(s), 0);
+                const avg = Math.round(totalScore / sessions.length);
+                document.getElementById('avgLeadScore').textContent = avg + '%';
+            }
+        }
+
+        function calculateLeadScore(session) {
+            let score = 0;
+            if (session.customer_name) score += 15;
+            if (session.objections_count > 0) score += 10;
+            if (session.turn_count > 3) score += 15;
+            if (session.outcome === 'demo_scheduled') score += 30;
+            if (session.outcome === 'qualified') score += 25;
+            if (session.handoff_needed) score += 15;
+            if (session.current_intent === 'pricing') score += 10;
+            return Math.min(score, 100);
+        }
+
+        function renderSessionList() {
+            const el = document.getElementById('sessionList');
+            if (sessions.length === 0) {
+                el.innerHTML = '<div class="empty-state">No sessions yet</div>';
+                return;
+            }
+            el.innerHTML = sessions.map(s => {
+                const score = calculateLeadScore(s);
+                const scoreColor = score > 60 ? '#00d4aa' : score > 30 ? '#fbbf24' : '#888';
+                return `
+                    <div class="session-item ${s.session_id === selectedSessionId ? 'active' : ''}"
+                         onclick="selectSession('${s.session_id}')">
+                        <div class="session-name">${s.customer_name || 'Anonymous'}</div>
+                        <div class="session-meta">
+                            <span class="badge badge-${s.current_intent}">${s.current_intent}</span>
+                            <span>${s.turn_count} turns</span>
+                            <span style="color:${scoreColor}">${score}%</span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        async function selectSession(sessionId) {
+            selectedSessionId = sessionId;
+            renderSessionList();
+
+            try {
+                const resp = await fetch(serverUrl + '/sessions/' + sessionId);
+                const data = await resp.json();
+                renderTranscript(data);
+                renderDetails(data);
+            } catch (e) {
+                document.getElementById('transcriptArea').innerHTML =
+                    '<div class="empty-state">Failed to load session</div>';
+            }
+        }
+
+        function renderTranscript(data) {
+            const el = document.getElementById('transcriptArea');
+            document.getElementById('transcriptTitle').textContent =
+                'Session: ' + (data.customer_info?.name || data.session_id || 'Unknown');
+
+            const intentBadge = document.getElementById('intentBadge');
+            intentBadge.innerHTML = `<span class="badge badge-${data.current_intent}">${data.current_intent}</span>`;
+
+            if (!data.messages || data.messages.length === 0) {
+                el.innerHTML = '<div class="empty-state">No messages yet</div>';
+                return;
+            }
+
+            el.innerHTML = data.messages.map(m => `
+                <div class="transcript ${m.role}">
+                    <div class="role">${m.role === 'customer' ? '👤 Customer' : '🤖 Agent'}</div>
+                    <div class="text">${m.content}</div>
+                </div>
+            `).join('');
+
+            el.scrollTop = el.scrollHeight;
+        }
+
+        function renderDetails(data) {
+            const details = document.getElementById('sessionDetails');
+            details.style.display = 'block';
+
+            // Customer fields
+            const c = data.customer_info || {};
+            document.getElementById('customerFields').innerHTML = [
+                { label: 'Name', value: c.name || '—' },
+                { label: 'Email', value: c.email || '—' },
+                { label: 'Company', value: c.company || '—' },
+                { label: 'Role', value: c.role || '—' },
+                { label: 'Budget', value: c.budget || '—' },
+                { label: 'Timeline', value: c.timeline || '—' },
+                { label: 'Outcome', value: data.outcome || '—' },
+                { label: 'User Count', value: data.user_count || '—' },
+                { label: 'Pricing Tier', value: data.pricing_tier_discussed || '—' },
+                { label: 'Competitor', value: data.competitor_mentioned || '—' },
+            ].map(f => `
+                <div class="detail-field">
+                    <div class="field-label">${f.label}</div>
+                    <div class="field-value">${f.value}</div>
+                </div>
+            `).join('');
+
+            // Lead score
+            const score = calculateLeadScore(data);
+            const scoreColor = score > 60 ? '#00d4aa' : score > 30 ? '#fbbf24' : '#f87171';
+            document.getElementById('leadScoreDisplay').innerHTML = `
+                <div style="font-size:24px;font-weight:700;color:${scoreColor}">${score}%</div>
+                <div class="lead-score-bar">
+                    <div class="fill" style="width:${score}%;background:${scoreColor}"></div>
+                </div>
+            `;
+
+            // Objections
+            const objList = document.getElementById('objectionList');
+            if (data.objections && data.objections.length > 0) {
+                objList.innerHTML = data.objections.map(o => `
+                    <li>
+                        <span class="obj-type">[${o.sub_type}]</span>
+                        ${o.text}
+                        ${o.resolved ? ' ✅' : ''}
+                    </li>
+                `).join('');
+            } else {
+                objList.innerHTML = '<li style="color:#666;">No objections raised</li>';
+            }
+        }
+
+        // Auto-connect on load
+        connectToServer();
+    </script>
+</body>
+</html>

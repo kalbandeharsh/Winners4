@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Winners4 - Test Call</title>
+  <script src="https://download.agora.io/sdk/release/AgoraRTC_N.js"></script>
+  <style>
+    body { font-family: Arial; background: #1a1a2e; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+    .box { background: #16213e; padding: 40px; border-radius: 16px; text-align: center; width: 400px; }
+    h1 { color: #e94560; margin-bottom: 20px; }
+    input { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 8px; background: #0f3460; color: #fff; }
+    button { width: 100%; padding: 14px; margin: 12px 0; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+    #joinBtn { background: #e94560; color: #fff; }
+    #leaveBtn { background: #533483; color: #fff; }
+    .status { margin-top: 16px; padding: 12px; border-radius: 8px; background: #0f3460; }
+    .ok { background: #1b5e20; }
+    .err { background: #b71c1c; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1>🎙️ Winners4 Voice Test</h1>
+    <input id="channel" placeholder="Paste channel name from terminal">
+    <button id="joinBtn" onclick="join()">📞 Join Call</button>
+    <button id="leaveBtn" onclick="leave()" style="display:none">📴 Leave</button>
+    <div class="status" id="status">Paste channel name from terminal, then click Join</div>
+  </div>
+  <script>
+    let client, mic;
+    async function join() {
+      const ch = document.getElementById('channel').value;
+      if (!ch) { show('Enter channel name','err'); return; }
+      client = AgoraRTC.createClient({mode:'rtc',codec:'vp8'});
+      mic = await AgoraRTC.createMicrophoneAudioTrack();
+      client.on('user-published', async (u, t) => {
+        await client.subscribe(u, t);
+        if (t==='audio') { u.audioTrack.play(); show('🔊 AI speaking — talk now!','ok'); }
+      });
+      try {
+        await client.join('66d8b08dbc7f47aa8abeed25ee9b02f4', ch, null, null);
+        await client.publish([mic]);
+        document.getElementById('joinBtn').style.display='none';
+        document.getElementById('leaveBtn').style.display='block';
+        show('✅ Connected! Start speaking...','ok');
+      } catch(e) { show('Error: '+e.message,'err'); }
+    }
+    async function leave() {
+      if(mic) mic.close();
+      if(client) await client.leave();
+      document.getElementById('joinBtn').style.display='block';
+      document.getElementById('leaveBtn').style.display='none';
+      show('Left call','');
+    }
+    function show(m,t){ const e=document.getElementById('status'); e.textContent=m; e.className='status '+(t||''); }
+  </script>
+</body>
+</html>
