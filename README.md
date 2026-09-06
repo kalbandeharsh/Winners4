@@ -194,8 +194,6 @@ Open `dashboard.html` to see:
 
 ## 📝 License
 
-Hackathon submission — EchoSphere 2024
-
 ---
 
 **Built with ❤️ by Winners4**
