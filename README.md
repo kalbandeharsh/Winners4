@@ -59,6 +59,10 @@ Create `.env` file:
 AGORA_APP_ID=your_app_id
 AGORA_APP_CERTIFICATE=your_certificate
 LLM_SERVER_URL=http://localhost:8000
+
+# For voice_agent.py (standalone Agora ConvoAI REST API)
+AGORA_TOKEN=your_agora_token
+CONVOAI_PIPELINE_ID=your_pipeline_id
 ```
 
 ### 3. Run
@@ -78,6 +82,12 @@ python3 server/main.py
 Terminal 2 - Start the voice pipeline:
 ```bash
 python3 voice_pipeline.py
+```
+
+**Option C: Standalone REST API agent** (no SDK needed)
+```bash
+python3 voice_agent.py
+python3 voice_agent.py --channel my-channel  # custom channel name
 ```
 
 ### 4. Make a Call
@@ -103,7 +113,8 @@ Winners4/
 │   └── product_lookup.py     # Product search & voice-friendly formatting
 ├── server/
 │   └── main.py               # FastAPI server + Slack escalation + session API
-├── voice_pipeline.py         # Agora voice pipeline
+├── voice_pipeline.py         # Agora voice pipeline (SDK-based)
+├── voice_agent.py            # 🆕 Agora voice agent (REST API, standalone)
 ├── dashboard.html            # 🆕 Monitoring dashboard (live transcripts, lead scores)
 ├── demo.html                 # Demo call UI
 ├── ARCHITECTURE.md           # 🆕 Mermaid architecture diagrams
@@ -193,6 +204,8 @@ Open `dashboard.html` to see:
 | Yash Zunzurkar | Frontend, Demo Flow Lead |
 
 ## 📝 License
+
+Hackathon submission — EchoSphere 2024
 
 ---
 
